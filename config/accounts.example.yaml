@@ -1,0 +1,118 @@
+# Copy to config/accounts.yaml and adjust. Secrets are never stored here —
+# every *Env field names an environment variable to read at startup (see
+# .env.example). This file only holds account identity + filter/routing logic.
+
+unipile:
+  baseUrlEnv: UNIPILE_BASE_URL # e.g. https://api1.unipile.com:13111
+  apiKeyEnv: UNIPILE_API_KEY
+  webhookSecretEnv: UNIPILE_WEBHOOK_SECRET # verifies the `unipile-signature` header
+
+slack:
+  botTokenEnv: SLACK_BOT_TOKEN
+
+smtp:
+  host: smtp.example.com
+  port: 587
+  secure: false
+  userEnv: SMTP_USER
+  passwordEnv: SMTP_PASSWORD
+  from: "Message Monitor <monitor@ndi.example>"
+
+accounts:
+  # --- Gmail inbox, owned by Sales -------------------------------------
+  - id: sales-gmail
+    channel: email
+    provider: gmail
+    label: "Sales inbox (Jane)"
+    refreshTokenEnv: SALES_GMAIL_REFRESH_TOKEN
+    clientIdEnv: GOOGLE_OAUTH_CLIENT_ID
+    clientSecretEnv: GOOGLE_OAUTH_CLIENT_SECRET
+    pollIntervalSeconds: 60
+    rules:
+      - id: pricing-questions
+        description: "Prospect asking about pricing/discounts"
+        match:
+          all:
+            - field: subject
+              op: contains
+              value: pricing
+            - not:
+                field: label
+                op: equals
+                value: SPAM
+        notify:
+          - type: slack
+            channel: "#sales-leads"
+      - id: urgent-from-key-account
+        match:
+          all:
+            - field: from.domain
+              op: in
+              values: [bigclient.com, importantpartner.com]
+            - any:
+                - field: subject
+                  op: contains
+                  value: urgent
+                - field: body
+                  op: matches
+                  pattern: "\\basap\\b"
+        notify:
+          - type: slack
+            userId: U012ABCDEF # Jane's Slack member id
+          - type: email
+            to: [jane@ndi.example]
+    # No rule matched -> still notify the inbox owner, just without the "urgent" tag.
+    defaultNotify:
+      - type: slack
+        channel: "#sales-inbox-fyi"
+
+  # --- Generic IMAP mailbox, owned by Support ---------------------------
+  - id: support-imap
+    channel: email
+    provider: imap
+    label: "Support inbox"
+    host: imap.example.com
+    port: 993
+    secure: true
+    userEnv: SUPPORT_IMAP_USER
+    passwordEnv: SUPPORT_IMAP_PASSWORD
+    mailbox: INBOX
+    pollIntervalSeconds: 90
+    rules:
+      - id: outage-report
+        match:
+          any:
+            - field: subject
+              op: matches
+              pattern: "(down|outage|not working)"
+              caseSensitive: false
+        notify:
+          - type: webhook
+            url: https://hooks.example.com/incidents
+            # Headers are sent exactly as written here — no env/template
+            # interpolation. If the receiving webhook needs a secret token,
+            # put the literal value here or front it with something that
+            # injects auth itself (this file is not committed with real values).
+            headers:
+              Authorization: "Bearer REPLACE_WITH_REAL_TOKEN"
+
+  # --- LinkedIn account (via Unipile), owned by BD ----------------------
+  - id: bd-linkedin
+    channel: linkedin
+    provider: unipile
+    label: "BD LinkedIn (Alex)"
+    unipileAccountId: acc_XXXXXXXXXXXXXXXXXXXXXX # the Unipile-side account id, not a secret
+    rules:
+      - id: recruiter-outreach
+        description: "Recruiter messages — route to HR, not BD"
+        match:
+          field: body
+          op: matches
+          pattern: "(open to work|recruiting|job opportunity)"
+          caseSensitive: false
+        notify:
+          - type: slack
+            channel: "#hr-inbound"
+    defaultNotify:
+      - type: slack
+        channel: "#bd-linkedin"

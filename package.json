@@ -1,0 +1,56 @@
+{
+  "name": "message-monitor-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-account email + LinkedIn inbox monitor with declarative filter rules and routed notifications.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:type": "tsc --noEmit -p tsconfig.json",
+    "test:lint": "eslint .",
+    "test:format": "prettier --check .",
+    "check": "pnpm test:format && pnpm test:lint && pnpm test:type && pnpm test"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "googleapis": "^144.0.0",
+    "imapflow": "^1.0.184",
+    "js-yaml": "^4.1.0",
+    "mailparser": "^3.7.2",
+    "nodemailer": "^6.9.16",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^4.17.21",
+    "@types/js-yaml": "^4.0.9",
+    "@types/mailparser": "^3.4.5",
+    "@types/node": "^22.10.5",
+    "@types/nodemailer": "^6.4.17",
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.1",
+    "vitest": "^3.0.2"
+  }
+}
